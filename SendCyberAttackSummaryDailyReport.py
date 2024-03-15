@@ -32,7 +32,6 @@ class SendCyberAttackReport:
 		    self.email_address = email_address
 
 	def run(self):
-
 		# Creates instance of APIClient. It contains all of the API methods.
 		api_client = APIClient()
 
@@ -48,6 +47,7 @@ class SendCyberAttackReport:
 		report_date = datetime.strptime(self.start_time, "%Y-%m-%d %H:%M:%S")
 
 		date_ 	= '{0}'.format(report_date.strftime("%d %B %Y"))
+		
 		##############################################################################
 		# CYBER ATTACK SUMMARY
 		##############################################################################
@@ -58,8 +58,6 @@ class SendCyberAttackReport:
 		time_period = {}
 		time_period['start_time'] = start_time
 		time_period['end_time'] = current_time
-
-		# data = self.get_cyberattack_summary(connection, table_metadata)
 		
 		# get grouped data for today
 		today_data				= self.get_cyberattack_summary_grouped_by_attackclassif(connection, table_metadata)
@@ -132,29 +130,10 @@ class SendCyberAttackReport:
 		for row in data:
 			total_events += row[0]
 
-		##############################################################################
-		# TOTAL VPN USER
-		##############################################################################
-		table_metadata['date'] = start_time
-
-		# we are connecting to DB which company team manages
-		connection = self.get_mssql_connection('socdb')
-
-		total_vpn_access = self.get_total_vpn_access(connection, table_metadata)
-		total_vpn_employee = self.get_total_vpn_employee(connection, table_metadata)
-		total_vpn_employee_critical_unit = self.get_total_vpn_employee_critical_unit(connection, table_metadata)
-		total_vpn_employee_non_critical_unit = self.get_total_vpn_employee_non_critical_unit(connection, table_metadata)
-		total_vpn_vendor = self.get_total_vpn_vendor(connection, table_metadata)
-		total_vpn_vendor_access_to_prod = self.get_total_vpn_vendor_access_to_prod(connection, table_metadata)
-		total_vpn_vendor_access_to_non_prod = total_vpn_vendor - total_vpn_vendor_access_to_prod
-
 		print('Total Cyber Attack ' + str(total_cyberattack))
 		print('Total External Threat ' + str(external_hacking))
 		print('Total Internal Threat ' + str(internal_hacking))
 		print("Total Event: " + str(total_events))
-		print("Total VPN Access: " + str(total_vpn_access))
-		print("Total VPN Employee: " + str(total_vpn_employee))
-		print("Total VPN Vendor: " + str(total_vpn_vendor))
 
 		data = {}
 		data['data_date'] 							= date_
@@ -166,13 +145,6 @@ class SendCyberAttackReport:
 		data['external_hacking_percent']			= '{}%'.format((round(external_hacking / total_cyberattack * 100)))
 		data['internal_hacking']					= '{:,}'.format(int(internal_hacking))
 		data['internal_hacking_percent']			= '{}%'.format((round(internal_hacking / total_cyberattack * 100)))
-		data['total_vpn_access']					= '{:,}'.format(int(str(total_vpn_access)))
-		data['total_vpn_employee']					= '{:,}'.format(int(str(total_vpn_employee)))
-		data['total_vpn_employee_critical_unit']	= '{:,}'.format(int(str(total_vpn_employee_critical_unit)))
-		data['total_vpn_employee_non_critical_unit']= '{:,}'.format(int(str(total_vpn_employee_non_critical_unit)))
-		data['total_vpn_vendor']					= '{:,}'.format(int(str(total_vpn_vendor)))
-		data['total_vpn_vendor_access_to_prod']		= '{:,}'.format(int(str(total_vpn_vendor_access_to_prod)))
-		data['total_vpn_vendor_access_to_non_prod']	= '{:,}'.format(int(str(total_vpn_vendor_access_to_non_prod)))
 		
 		data['external_data'] = self.get_wording(external_threat_key, external_data, yesterday_external_data)
 		data['internal_data'] = self.get_wording(internal_threat_key, internal_data, yesterday_internal_data)
@@ -271,170 +243,6 @@ class SendCyberAttackReport:
 
 		return rows
 
-	def get_total_vpn_access(self, connection, table_metadata):
-		cursor = connection.cursor()
-		date_only = table_metadata['date'].split(" ")[0]
-
-		query_expression = """
-			select count(distinct a.username)
-			from v_vpn_user_policy_master a join v_vpn_user_login_stat b on a.username =b.username 
-			left join v_vpn_daily c on a.username =c.[Palo Alto: Username] 
-			where ((case when c.[Start Time] is null then convert(char, b.registered_date_db , 120)  
-			else c.[Start Time] end) like '{0}%')
-			""".format(date_only)
-
-		cursor.execute(query_expression)
-
-		rows = cursor.fetchall()
-
-		total_vpn_access = rows[0][0]
-
-		return total_vpn_access
-
-	def get_total_vpn_employee(self, connection, table_metadata):
-		cursor = connection.cursor()
-		date_only = table_metadata['date'].split(" ")[0]
-
-		query_expression = """
-			select count(distinct a.username)
-			from v_vpn_user_policy_master a join v_vpn_user_login_stat b on a.username =b.username 
-			left join v_vpn_daily c on a.username =c.[Palo Alto: Username] 
-			where ((case when c.[Start Time] is null then convert(char, b.registered_date_db , 120)  
-			else c.[Start Time] end) like '{0}%') and 
-			(a.User_Type like 'Internship'
-			OR a.User_Type like 'Contract Resource'
-			OR a.User_Type like 'Others'
-			OR a.User_Type like 'Pegawai'
-			OR a.User_Type like 'Pegawai NIP'
-			OR a.User_Type like 'TAD')
-			""".format(date_only)
-
-		cursor.execute(query_expression)
-
-		rows = cursor.fetchall()
-
-		total_vpn_employee = rows[0][0]
-
-		return total_vpn_employee
-
-	def get_total_vpn_employee_critical_unit(self, connection, table_metadata):
-		cursor = connection.cursor()
-		date_only = table_metadata['date'].split(" ")[0]
-
-		query_expression = """
-			select count(distinct a.username)
-			from v_vpn_user_policy_master a join v_vpn_user_login_stat b on a.username =b.username 
-			left join v_vpn_daily c on a.username =c.[Palo Alto: Username] 
-			where ((case when c.[Start Time] is null then convert(char, b.registered_date_db , 120)  
-			else c.[Start Time] end) like '{0}%') AND 
-			(a.User_Type like 'Internship'
-			OR a.User_Type like 'Contract Resource'
-			OR a.User_Type like 'Others'
-			OR a.User_Type like 'Pegawai'
-			OR a.User_Type like 'Pegawai NIP'
-			OR a.User_Type like 'TAD') AND a.criticality_risk = 'CRITICAL';
-			""".format(date_only)
-
-		cursor.execute(query_expression)
-
-		rows = cursor.fetchall()
-
-		total_vpn_employee = rows[0][0]
-
-		return total_vpn_employee
-
-	def get_total_vpn_employee_non_critical_unit(self, connection, table_metadata):
-		cursor = connection.cursor()
-		date_only = table_metadata['date'].split(" ")[0]
-
-		query_expression = """
-			select count(distinct a.username)
-			from v_vpn_user_policy_master a join v_vpn_user_login_stat b on a.username =b.username 
-			left join v_vpn_daily c on a.username =c.[Palo Alto: Username] 
-			where ((case when c.[Start Time] is null then convert(char, b.registered_date_db , 120)  
-			else c.[Start Time] end) like '{0}%') AND 
-			(a.User_Type like 'Internship'
-			OR a.User_Type like 'Contract Resource'
-			OR a.User_Type like 'Others'
-			OR a.User_Type like 'Pegawai'
-			OR a.User_Type like 'Pegawai NIP'
-			OR a.User_Type like 'TAD') AND a.criticality_risk = 'NON CRITICAL'
-			""".format(date_only)
-
-		cursor.execute(query_expression)
-
-		rows = cursor.fetchall()
-
-		total_vpn_employee = rows[0][0]
-
-		return total_vpn_employee
-
-	def get_total_vpn_vendor(self, connection, table_metadata):
-		cursor = connection.cursor()
-		date_only = table_metadata['date'].split(" ")[0]
-
-		query_expression = """
-			select count(distinct a.username)
-			from v_vpn_user_policy_master a join v_vpn_user_login_stat b on a.username =b.username 
-			left join v_vpn_daily c on a.username =c.[Palo Alto: Username] 
-			where ((case when c.[Start Time] is null then convert(char, b.registered_date_db , 120)  
-			else c.[Start Time] end) like '{0}%') and 
-			(a.User_Type LIKE '%Third Party - Vendor%')
-			and c.[Event Name] not like '%User Logout%'
-			""".format(date_only)
-
-		cursor.execute(query_expression)
-
-		rows = cursor.fetchall()
-
-		total_vpn_vendor = rows[0][0]
-
-		return total_vpn_vendor
-
-	def get_total_vpn_vendor_all_columns(self, connection, table_metadata):
-		cursor = connection.cursor()
-		date_only = table_metadata['date'].split(" ")[0]
-
-		query_expression = """
-			select a.username, c.[Destination IP], c.[Start Time]
-			from v_vpn_user_policy_master a join v_vpn_user_login_stat b on a.username =b.username 
-			left join v_vpn_daily c on a.username =c.[Palo Alto: Username] 
-			where ((case when c.[Start Time] is null then convert(char, b.registered_date_db , 120)  
-			else c.[Start Time] end) like '{0}%') and (a.User_Type LIKE '%Third Party - Vendor%')
-			and c.[Event Name] not like '%User Logout%'
-			""".format(date_only)
-
-		cursor.execute(query_expression)
-
-		rows = cursor.fetchall()
-
-		total_vpn_vendor = rows[0][0]
-
-		return total_vpn_vendor
-
-	def get_total_vpn_vendor_access_to_prod(self, connection, table_metadata):
-		cursor = connection.cursor()
-		date_only = table_metadata['date'].split(" ")[0]
-
-		query_expression = """
-			select count(distinct a.username)
-			from v_vpn_user_policy_master a join v_vpn_user_login_stat b on a.username =b.username 
-			left join v_vpn_daily c on a.username =c.[Palo Alto: Username] 
-			where ((case when c.[Start Time] is null then convert(char, b.registered_date_db , 120)  
-			else c.[Start Time] end) like '{0}%') and 
-			(a.User_Type LIKE '%Third Party - Vendor%') and 
-			SUBSTRING(c.[Destination IP], 1,6) in ('10.204','10.254', '10.246')
-			and c.[Event Name] not like '%User Logout%';
-			""".format(date_only)
-
-		cursor.execute(query_expression)
-
-		rows = cursor.fetchall()
-
-		total_vpn_vendor = rows[0][0]
-
-		return total_vpn_vendor
-
 	def process_email(self, data):
 		folder_path = os.path.realpath('MailTemplate')
 		
@@ -483,13 +291,6 @@ class SendCyberAttackReport:
 		text = text.replace('total_cyberattack', data['total_cyberattack'])
 		text = text.replace('external_hacking', data['external_hacking'])
 		text = text.replace('internal_hacking', data['internal_hacking'])
-		text = text.replace('total_vpn_access', data['total_vpn_access'])
-		text = text.replace('total_vpn_employee_critical_unit', data['total_vpn_employee_critical_unit'])
-		text = text.replace('total_vpn_employee_non_critical_unit', data['total_vpn_employee_non_critical_unit'])
-		text = text.replace('total_vpn_employee', data['total_vpn_employee'])
-		text = text.replace('total_vpn_vendor_access_to_prod', data['total_vpn_vendor_access_to_prod'])
-		text = text.replace('total_vpn_vendor_access_to_non_prod', data['total_vpn_vendor_access_to_non_prod'])
-		text = text.replace('total_vpn_vendor', data['total_vpn_vendor'])
 		text = text.replace('external_data', data['external_data'])
 		text = text.replace('internal_data', data['internal_data'])
 

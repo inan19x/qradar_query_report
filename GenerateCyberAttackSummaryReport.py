@@ -55,12 +55,12 @@ if __name__ == "__main__":
 
 	flag = True
 	while flag:
-		starting_date = input("Enter starting date (ex: 2020-04-11 00:00:00): ")
+		starting_date = input("Enter starting date (YYYY-MM-DD HH:mm:ss): ")
 		flag = check_date_format(starting_date)
 
 	flag = True
 	while flag:
-		ending_date = input("Enter ending date (ex: 2020-04-11 12:00:00): ")
+		ending_date = input("Enter ending date (YYYY-MM-DD HH:mm:ss): ")
 		flag = check_date_format(ending_date)
 
 		if not flag:
