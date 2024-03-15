@@ -6,7 +6,7 @@ regex = '[^@]+@[^@]+\.[^@]+'
 from datetime import datetime, timedelta
 
 sys.path.append(".")
-from GetCyberAttackSummary4 import CyberAttackSummary
+from GetCyberAttackSummary import CyberAttackSummary
 from SendCyberAttackSummaryDailyReport import SendCyberAttackReport
 
 def check_date_format(date_input):
