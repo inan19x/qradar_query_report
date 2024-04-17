@@ -50,6 +50,60 @@ class RestApiClient:
         # context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         context = ssl.SSLContext()
 
+        # # SSL version 2 and SSL version 3 are insecure. The insecure versions
+        # # are disabled.
+        # try:
+        #     context.options = ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3
+        # except ValueError as e:
+        #     # Disabling SSLv2 and SSLv3 is not supported on versions of OpenSSL
+        #     # prior to 0.9.8m.
+        #     if not (self.config.has_config_value('ssl_2_3_ok') and
+        #             self.config.get_config_value('ssl_2_3_ok') == 'true'):
+        #         print('WARNING: Unable to disable SSLv2 and SSLv3. Caused '
+        #               'by exception "' + str(e) + '"')
+        #         while True:
+        #             response = input(
+        #                 "Would you like to continue anyway (yes/no)? "
+        #                 ).strip().lower()
+        #             if response == "no":
+        #                 sys.exit(1)
+        #             elif response == "yes":
+        #                 self.config.set_config_value('ssl_2_3_ok', 'true')
+        #                 break
+        #             else:
+        #                 print(response + " is not a valid response.")
+
+        # context.verify_mode = ssl.CERT_REQUIRED
+        # if sys.version_info >= (3, 4):
+        #     context.check_hostname = True
+
+        # check_hostname = True
+        # certificate_file = self.config.get_config_value('certificate_file')
+        # if certificate_file is not None:
+        #     # Load the certificate if the user has specified a certificate
+        #     # file in config.ini.
+
+        #     # The default QRadar certificate does not have a valid hostname,
+        #     # so me must disable hostname checking.
+        #     if sys.version_info >= (3, 4):
+        #         context.check_hostname = False
+        #     check_hostname = False
+
+        #     # Instead of loading the default certificates load only the
+        #     # certificates specified by the user.
+        #     context.load_verify_locations(cafile=certificate_file)
+        # else:
+        #     if sys.version_info >= (3, 4):
+        #         # Python 3.4 and above has the improved load_default_certs()
+        #         # function.
+        #         context.load_default_certs(ssl.Purpose.CLIENT_AUTH)
+        #     else:
+        #         # Versions of Python before 3.4 do not have the
+        #         # load_default_certs method.  set_default_verify_paths will
+        #         # work on some, but not all systems.  It fails silently.  If
+        #         # this call fails the certificate will fail to validate.
+        #         context.set_default_verify_paths()
+
         install_opener(build_opener(
             HTTPSHandler(context=context, check_hostname=False)))
 
